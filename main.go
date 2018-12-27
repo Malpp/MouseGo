@@ -1,13 +1,14 @@
-﻿package main
+package main
 
 import (
+	"github.com/go-vgo/robotgo"
+	"github.com/googollee/go-socket.io"
+	"github.com/tarm/serial"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/go-vgo/robotgo"
-	"github.com/googollee/go-socket.io"
+	"time"
 )
 
 func main() {
@@ -41,12 +42,28 @@ func main() {
 			}
 			robotgo.ScrollMouse(Abs(scroll), direction)
 		})
+
+		so.On("screen", func(scrollData string) {
+			go SendCloseMonitorCommand()
+		})
 	})
 
 	http.Handle("/socket.io/", server)
 	http.Handle("/", http.FileServer(http.Dir("static")))
 	log.Println("Serving at localhost...")
 	log.Fatal(http.ListenAndServe(":80", nil))
+}
+
+func SendCloseMonitorCommand() {
+	c := &serial.Config{Name: "COM8", Baud: 9600}
+	s, err := serial.OpenPort(c)
+	if err != nil {
+		log.Printf("%+v", err)
+	}
+	defer s.Close()
+	time.Sleep(time.Second)
+	s.Write([]byte("a"))
+	log.Println("Sent screen command")
 }
 
 func Abs(x int) int {
